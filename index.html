@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Borahae — A Wall for BTS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg: #1A1330;
+    --bg-deep: #120C24;
+    --lilac: #C9B8FF;
+    --lilac-dim: #8E7EC0;
+    --gold: #E8C468;
+    --ink: #F3EEFF;
+    --ink-dim: #B7ADD1;
+    --rose: #FF6B8A;
+    --card: #221A3B;
+    --card-border: rgba(201,184,255,0.14);
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0;
+    background: radial-gradient(ellipse at 20% -10%, #2A1F4D 0%, var(--bg) 45%, var(--bg-deep) 100%);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection{ background: var(--rose); color: var(--bg-deep); }
+
+  .wrap{ max-width: 920px; margin: 0 auto; padding: 0 24px; }
+
+  header.hero{ padding: 88px 0 64px; position: relative; }
+  .eyebrow-mark{ display:flex; align-items:center; gap:10px; margin-bottom: 28px; }
+  .eyebrow-mark .dot{ width:7px; height:7px; border-radius:50%; background: var(--rose); box-shadow: 0 0 12px 2px rgba(255,107,138,0.6); }
+  .eyebrow-mark span{ font-size: 13.5px; letter-spacing: 0.02em; color: var(--ink-dim); }
+  h1.borahae{ font-family: 'Fraunces', serif; font-weight: 500; font-size: clamp(48px, 9vw, 96px); line-height: 0.98; margin: 0 0 6px 0; color: var(--ink); letter-spacing: -0.01em; }
+  h1.borahae em{ font-style: italic; color: var(--lilac); font-weight: 500; }
+  .hero-sub{ max-width: 520px; font-size: 17px; line-height: 1.6; color: var(--ink-dim); margin: 22px 0 0 0; }
+  .hero-cta{ margin-top: 36px; display: flex; gap: 14px; flex-wrap: wrap; }
+  .btn{ font-family: 'Inter', sans-serif; font-size: 14.5px; font-weight: 600; padding: 13px 24px; border-radius: 999px; border: none; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+  .btn:focus-visible{ outline: 2px solid var(--gold); outline-offset: 3px; }
+  .btn-primary{ background: var(--gold); color: #241A08; }
+  .btn-primary:hover{ transform: translateY(-1px); box-shadow: 0 6px 20px rgba(232,196,104,0.25); }
+  .btn-ghost{ background: transparent; border: 1px solid var(--card-border); color: var(--ink); }
+  .btn-ghost:hover{ border-color: var(--lilac-dim); }
+  .admin-cta-link{ background: none; font-family: 'Inter', sans-serif; text-decoration: none; display: inline-flex; align-items: center; cursor: pointer; color: var(--ink-dim); opacity: 0.7; }
+  .admin-cta-link:hover{ opacity: 1; }
+
+  section.roster{ padding: 8px 0 60px; }
+  .roster-label{ font-size: 14px; color: var(--ink-dim); margin-bottom: 18px; }
+  .roster-row{ display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+  .member-card{ flex: 0 0 auto; width: 118px; background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 16px 14px; cursor: pointer; transition: border-color 0.15s ease, transform 0.15s ease; text-align: left; }
+  .member-card:hover{ border-color: var(--lilac-dim); transform: translateY(-2px); }
+  .member-card.active{ border-color: var(--lilac); background: #271F45; }
+  .member-name{ font-family: 'Fraunces', serif; font-size: 17px; font-weight: 500; }
+  .member-role{ font-size: 12px; color: var(--ink-dim); margin-top: 4px; }
+
+  .spotlight{ margin-top: 22px; background: var(--card); border: 1px solid var(--card-border); border-radius: 16px; padding: 22px 24px; display: none; }
+  .spotlight.show{ display: block; }
+  .spotlight p{ font-family: 'Fraunces', serif; font-style: italic; font-size: 18px; line-height: 1.5; color: var(--ink); margin: 0; }
+
+  section.wall{ padding: 20px 0 100px; position: relative; }
+  .wall-head{ margin-bottom: 28px; }
+  h2.wall-title{ font-family: 'Fraunces', serif; font-weight: 500; font-size: clamp(30px, 4vw, 40px); margin: 0 0 8px 0; color: var(--gold); }
+  .wall-desc{ color: var(--ink-dim); font-size: 15px; max-width: 480px; }
+
+  .member-select-group{ display: flex; flex-direction: column; gap: 6px; width: 100%; }
+  .member-select-group select{ width: 100%; }
+
+  form.post-form{ background: linear-gradient(155deg, #2A2049, #1E1638); border: 1px solid var(--card-border); border-radius: 18px; padding: 22px; margin-bottom: 36px; }
+  .form-row{ display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .form-row input[type=text]{ flex: 1; min-width: 140px; }
+  input[type=text], select, textarea{ background: rgba(255,255,255,0.04); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px 14px; color: var(--ink); font-family: 'Inter', sans-serif; font-size: 14.5px; width: 100%; }
+  input[type=text]:focus, select:focus, textarea:focus{ outline: 2px solid var(--lilac-dim); outline-offset: 1px; border-color: transparent; }
+  textarea{ resize: vertical; min-height: 84px; line-height: 1.5; }
+  ::placeholder{ color: var(--ink-dim); opacity: 0.7; }
+  .image-row{ align-items: center; margin-bottom: 10px; }
+  .image-label{ display: inline-flex; align-items: center; font-size: 13.5px; color: var(--lilac); border: 1px dashed var(--card-border); border-radius: 10px; padding: 10px 16px; cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease; }
+  .image-label:hover{ border-color: var(--lilac-dim); color: var(--ink); }
+  .image-clear{ background: none; border: none; cursor: pointer; color: var(--ink-dim); font-size: 12.5px; text-decoration: underline; text-underline-offset: 3px; }
+  .image-clear:hover{ color: var(--rose); }
+  .image-preview-wrap{ margin-bottom: 14px; }
+  .image-preview-wrap img{ max-width: 160px; max-height: 160px; border-radius: 10px; border: 1px solid var(--card-border); display: block; object-fit: cover; }
+
+  .moderation-error{ color: var(--rose); font-size: 13.5px; margin: 0 0 14px 0; padding: 10px 14px; background: rgba(255,107,138,0.08); border: 1px solid rgba(255,107,138,0.25); border-radius: 10px; }
+  .form-foot{ display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap: wrap; gap: 10px; }
+  .char-count{ font-size: 12.5px; color: var(--ink-dim); }
+  select{ width: auto; }
+
+  .wall-controls{ display: flex; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+  .wall-filter{ display: flex; align-items: center; gap: 10px; }
+  .wall-filter-label{ font-size: 13px; color: var(--ink-dim); }
+  .wall-controls select{ width: auto; padding: 8px 12px; font-size: 13.5px; }
+
+  .wall-grid{ columns: 3 260px; column-gap: 16px; }
+  @media (max-width: 640px){ .wall-grid{ columns: 1; } }
+
+  .msg-card{ background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 18px 18px 14px; margin-bottom: 16px; break-inside: avoid; position: relative; }
+  .msg-tag{ display: inline-block; font-size: 11.5px; padding: 3px 9px; border-radius: 999px; background: rgba(201,184,255,0.12); color: var(--lilac); margin-bottom: 10px; }
+  .msg-title{ font-family: 'Fraunces', serif; font-weight: 500; font-size: 16.5px; color: var(--ink); margin: 0 0 8px 0; }
+  .msg-image{ display: block; width: 100%; border-radius: 10px; margin-bottom: 12px; object-fit: cover; max-height: 220px; }
+  .msg-body{ font-size: 14.5px; line-height: 1.6; color: var(--ink); margin: 0 0 12px 0; white-space: pre-wrap; word-break: break-word; }
+  .msg-foot{ display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--ink-dim); }
+  .msg-name{ font-weight: 600; color: var(--ink-dim); }
+  .like-btn{ background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px; color: var(--ink-dim); font-size: 12.5px; padding: 4px 6px; border-radius: 8px; transition: color 0.15s ease; }
+  .like-btn:hover{ color: var(--rose); }
+  .like-btn.liked{ color: var(--rose); }
+  .like-btn svg{ width: 14px; height: 14px; }
+
+  .empty-state{ grid-column: 1/-1; text-align: center; padding: 50px 20px; color: var(--ink-dim); font-size: 14.5px; }
+
+  footer{ text-align: center; padding: 30px 0 50px; font-size: 13px; color: var(--ink-dim); }
+
+  .made-by-btn{
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--lilac);
+    color: #241A45;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 12px 18px;
+    border-radius: 999px;
+    text-decoration: none;
+    box-shadow: 0 6px 20px rgba(201,184,255,0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .made-by-btn:hover{ transform: translateX(-50%) translateY(-2px) scale(1.04); box-shadow: 0 8px 26px rgba(201,184,255,0.5); }
+  .made-by-btn svg{ width: 16px; height: 16px; flex-shrink: 0; }
+  @media (max-width: 640px){
+    .made-by-btn{ bottom: 16px; font-size: 11.5px; padding: 10px 14px; }
+    .made-by-btn svg{ width: 14px; height: 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){ *{ transition: none !important; animation: none !important; } }
+
+  .visually-hidden{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+  .admin-link{ background: none; border: none; cursor: pointer; color: var(--ink-dim); font-size: 12px; text-decoration: underline; text-underline-offset: 3px; padding: 6px; margin-top: 4px; }
+  .admin-link:hover{ color: var(--lilac); }
+
+  .admin-page{ min-height: 100vh; background: radial-gradient(ellipse at 20% -10%, #2A1F4D 0%, var(--bg) 45%, var(--bg-deep) 100%); }
+  .admin-page-wrap{ padding-top: 40px; max-width: 720px; }
+  .admin-page-header{ margin-bottom: 36px; }
+  .admin-back{ background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; color: var(--ink-dim); font-size: 13.5px; text-decoration: none; padding: 0; }
+  .admin-back:hover{ color: var(--lilac); }
+  .admin-page-title{ font-family: 'Fraunces', serif; font-weight: 500; font-size: clamp(28px, 4vw, 38px); margin: 0 0 10px 0; color: var(--gold); }
+  .admin-gate-sub{ color: var(--ink-dim); font-size: 14.5px; max-width: 420px; margin: 0 0 24px 0; }
+  .admin-login-form{ display: flex; gap: 10px; flex-wrap: wrap; max-width: 360px; }
+  .admin-login-form input{ flex: 1; min-width: 180px; }
+  .admin-gate-error{ color: var(--rose); font-size: 13.5px; margin-top: 14px; }
+  .admin-count{ font-size: 13.5px; color: var(--ink-dim); margin: 0 0 22px 0; }
+  .admin-list{ display: flex; flex-direction: column; gap: 10px; padding-bottom: 80px; }
+  .admin-row{ display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; background: var(--card); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px 16px; }
+  .admin-row-main{ display: flex; gap: 10px; flex: 1; }
+  .admin-thumb{ width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+  .admin-row-text{ font-size: 13.5px; line-height: 1.5; color: var(--ink); flex: 1; }
+  .admin-row-meta{ font-size: 11.5px; color: var(--ink-dim); margin-top: 4px; }
+  .admin-delete{ background: rgba(255,107,138,0.12); color: var(--rose); border: none; border-radius: 8px; padding: 7px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+  .admin-delete:hover{ background: rgba(255,107,138,0.22); }
+  .admin-empty{ color: var(--ink-dim); font-size: 13.5px; text-align: center; padding: 20px; }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="mainApp">
+
+  <header class="hero">
+    <div class="eyebrow-mark"><span class="dot"></span><span>a small corner of the internet for ARMY</span></div>
+    <h1 class="borahae">I purple <em>you</em>.</h1>
+    <p class="hero-sub">Borahae (보라해) — the color of trust that lasts, promised between BTS and ARMY. Leave a message for the members, or just for the fandom that gets it. Everything posted here stays up for anyone who visits.</p>
+    <div class="hero-cta">
+      <button class="btn btn-primary" id="scrollToForm">Leave a message</button>
+      <button class="btn btn-ghost" id="scrollToWall">Read the wall</button>
+      <button type="button" class="btn btn-ghost admin-cta-link" id="adminLinkHero">Admin</button>
+    </div>
+  </header>
+
+  <section class="roster" aria-label="BTS members">
+    <p class="roster-label">Tap a member to read a short spotlight</p>
+    <div class="roster-row" id="rosterRow"></div>
+    <div class="spotlight" id="spotlight"><p id="spotlightText"></p></div>
+  </section>
+
+  <section class="wall" id="wallSection">
+    <div class="wall-head">
+      <h2 class="wall-title">The wall of love</h2>
+      <p class="wall-desc">Every message here was left by a real visitor, and it'll stay for the next one. Be kind — this is ARMY's living room.</p>
+    </div>
+
+    <div class="wall-controls" id="wallControls">
+      <div class="wall-filter">
+        <label for="memberFilter" class="wall-filter-label">Filter by member</label>
+        <select id="memberFilter" aria-label="Filter messages by member">
+          <option value="">All members</option>
+          <option value="All of them">All of them</option>
+          <option value="RM">RM</option>
+          <option value="Jin">Jin</option>
+          <option value="Suga">Suga</option>
+          <option value="J-Hope">J-Hope</option>
+          <option value="Jimin">Jimin</option>
+          <option value="V">V</option>
+          <option value="Jungkook">Jungkook</option>
+        </select>
+      </div>
+      <div class="wall-filter" id="countryFilterWrap" style="display:none;">
+        <label for="countryFilter" class="wall-filter-label">Filter by country</label>
+        <select id="countryFilter" aria-label="Filter messages by country">
+          <option value="">All countries</option>
+        </select>
+      </div>
+    </div>
+
+    <form class="post-form" id="postForm">
+      <div class="form-row">
+        <input type="text" id="nameInput" placeholder="Your name" maxlength="40" required>
+        <select id="countryInput" aria-label="Your country" required>
+          <option value="" disabled selected>Select your country</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="member-select-group">
+          <label for="memberSelect" class="wall-filter-label">Who is this message for?</label>
+          <select id="memberSelect" aria-label="Who is this message for" required>
+            <option value="" disabled selected>Pick a member or post to all</option>
+            <option value="All of them">All of them</option>
+            <option value="RM">RM</option>
+            <option value="Jin">Jin</option>
+            <option value="Suga">Suga</option>
+            <option value="J-Hope">J-Hope</option>
+            <option value="Jimin">Jimin</option>
+            <option value="V">V</option>
+            <option value="Jungkook">Jungkook</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <input type="text" id="titleInput" placeholder="Title your message" maxlength="80" required>
+      </div>
+      <textarea id="messageInput" placeholder="Write your message of support..." required></textarea>
+      <div class="form-row image-row">
+        <label class="image-label" for="imageInput" id="imageLabelText">＋ Add image (optional)</label>
+        <input type="file" id="imageInput" accept="image/*" class="visually-hidden">
+        <button type="button" id="imageClear" class="image-clear" style="display:none;">Remove image</button>
+      </div>
+      <p class="moderation-error" id="imageSizeError" style="display:none;">Please choose an image under 3MB.</p>
+      <div class="image-preview-wrap" id="imagePreviewWrap" style="display:none;">
+        <img id="imagePreview" alt="Image attached to your message">
+      </div>
+      <p class="moderation-error" id="moderationError" style="display:none;">This message can't be posted — it contains hate speech or harassment, which isn't allowed on the wall. Ordinary swearing is fine, just rewrite the flagged part.</p>
+      <div class="form-foot">
+        <span class="char-count" id="charCount">2000 words left</span>
+        <button type="submit" class="btn btn-primary">Post to the wall</button>
+      </div>
+    </form>
+
+    <div class="wall-grid" id="wallGrid" aria-live="polite">
+      <div class="empty-state" id="emptyState">Loading messages…</div>
+    </div>
+  </section>
+
+  <footer>Made by ARMY, for ARMY. Not affiliated with BIGHIT MUSIC or BTS. 보라해 🩷
+    <br><button type="button" class="admin-link" id="adminLinkFooter">Admin</button>
+  </footer>
+
+</div>
+
+<a class="made-by-btn" href="https://youtube.com/@bangtanateofficial_0?si=t0AFHWXxztGe5isP" target="_blank" rel="noopener noreferrer" title="Official channel of admin" aria-label="Made by @BangtanATEOfficial_0 — visit the channel">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c2 .6 9.4.6 9.4.6s7.4 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.3 3.6-6.3 3.6Z"/></svg>
+  <span>Made by @BangtanATEOfficial_0</span>
+</a>
+
+<div class="admin-page" id="adminPage" style="display:none;">
+  <div class="wrap admin-page-wrap">
+
+    <div class="admin-page-header">
+      <button type="button" id="adminBack" class="admin-back">← Back to the wall</button>
+    </div>
+
+    <div class="admin-gate" id="adminGate">
+      <h1 class="admin-page-title">Admin sign-in</h1>
+      <p class="admin-gate-sub">This page is only for whoever runs the wall. Enter the password to continue.</p>
+      <form id="adminLoginForm" class="admin-login-form">
+        <input type="password" id="adminPasswordInput" placeholder="Password" autocomplete="current-password">
+        <button type="submit" class="btn btn-primary">Enter</button>
+      </form>
+      <p class="admin-gate-error" id="adminGateError" style="display:none;">Wrong password — try again.</p>
+    </div>
+
+    <div class="admin-content" id="adminContent" style="display:none;">
+      <h1 class="admin-page-title">Wall admin</h1>
+      <p class="admin-count" id="adminCount">0 messages on the wall</p>
+      <div class="admin-list" id="adminList"></div>
+    </div>
+
+  </div>
+</div>
+
+
+</div>
+
+<script>
+(function(){
+  const SUPABASE_URL = 'https://cqlablfkynhveysouhdl.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_rUOLp-Cbjb5QpGScnTPhMQ_v0JU4YA8';
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const members = [
+    { name:"RM", role:"Leader", color:"#C9B8FF", spotlight:"RM leads with quiet thoughtfulness — the one who turns feelings into words the rest of the world borrows." },
+    { name:"Jin", role:"Vocalist", color:"#FF6B8A", spotlight:"Jin brings the warmth and the jokes, reminding everyone that joy is worth protecting too." },
+    { name:"Suga", role:"Rapper", color:"#8E7EC0", spotlight:"Suga writes from the parts of himself most people hide, and that honesty is its own kind of support." },
+    { name:"J-Hope", role:"Rapper/Dancer", color:"#E8C468", spotlight:"J-Hope's energy on stage is real off it too — hope as something you can actually hand to someone." },
+    { name:"Jimin", role:"Vocalist/Dancer", color:"#FF6B8A", spotlight:"Jimin pours everything into every movement, treating effort itself as a kind of care." },
+    { name:"V", role:"Vocalist", color:"#C9B8FF", spotlight:"V sees the world a little sideways, and that's exactly what makes his art feel like his alone." },
+    { name:"Jungkook", role:"Vocalist/Dancer", color:"#E8C468", spotlight:"Jungkook keeps chasing whatever he hasn't tried yet — the golden maknae, still growing out loud." }
+  ];
+
+  const rosterRow = document.getElementById('rosterRow');
+  const spotlight = document.getElementById('spotlight');
+  const spotlightText = document.getElementById('spotlightText');
+  let activeCard = null;
+
+  members.forEach(m => {
+    const card = document.createElement('button');
+    card.className = 'member-card';
+    card.innerHTML = `<div class="member-name" style="color:${m.color}">${m.name}</div>
+                       <div class="member-role">${m.role}</div>`;
+    card.addEventListener('click', () => {
+      if(activeCard) activeCard.classList.remove('active');
+      if(activeCard === card && spotlight.classList.contains('show')){
+        spotlight.classList.remove('show');
+        activeCard = null;
+        return;
+      }
+      card.classList.add('active');
+      activeCard = card;
+      spotlightText.textContent = m.spotlight;
+      spotlight.classList.add('show');
+    });
+    rosterRow.appendChild(card);
+  });
+
+  const countryList = ["Afghanistan","Albania","Algeria","Andorra","Angola","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cambodia","Cameroon","Canada","Cape Verde","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo","Costa Rica","Croatia","Cuba","Cyprus","Czechia","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Lucia","Samoa","San Marino","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+  const countryInputEl = document.getElementById('countryInput');
+  countryList.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    countryInputEl.appendChild(opt);
+  });
+
+  document.getElementById('scrollToForm').addEventListener('click', () => {
+    document.getElementById('postForm').scrollIntoView({behavior:'smooth', block:'center'});
+    document.getElementById('messageInput').focus();
+  });
+  document.getElementById('scrollToWall').addEventListener('click', () => {
+    document.getElementById('wallSection').scrollIntoView({behavior:'smooth'});
+  });
+
+  const wallGrid = document.getElementById('wallGrid');
+  const emptyState = document.getElementById('emptyState');
+  const messageInput = document.getElementById('messageInput');
+  const charCount = document.getElementById('charCount');
+  const nameInput = document.getElementById('nameInput');
+  const titleInput = document.getElementById('titleInput');
+  const countryInput = document.getElementById('countryInput');
+  const memberSelect = document.getElementById('memberSelect');
+  const countryFilter = document.getElementById('countryFilter');
+  const memberFilter = document.getElementById('memberFilter');
+  const form = document.getElementById('postForm');
+  const moderationError = document.getElementById('moderationError');
+  const imageInput = document.getElementById('imageInput');
+  const imagePreviewWrap = document.getElementById('imagePreviewWrap');
+  const imagePreview = document.getElementById('imagePreview');
+  const imageClear = document.getElementById('imageClear');
+  const imageLabelText = document.getElementById('imageLabelText');
+  const imageSizeError = document.getElementById('imageSizeError');
+  let pendingImage = null;
+
+  imageInput.addEventListener('change', () => {
+    const file = imageInput.files[0];
+    if(!file) return;
+    if(file.size > 3 * 1024 * 1024){
+      imageSizeError.style.display = 'block';
+      imageInput.value = '';
+      return;
+    }
+    imageSizeError.style.display = 'none';
+    const reader = new FileReader();
+    reader.onload = () => {
+      pendingImage = reader.result;
+      imagePreview.src = pendingImage;
+      imagePreviewWrap.style.display = 'block';
+      imageClear.style.display = 'inline-block';
+      imageLabelText.textContent = '✓ ' + file.name.slice(0,30);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  imageClear.addEventListener('click', () => {
+    pendingImage = null;
+    imageInput.value = '';
+    imagePreviewWrap.style.display = 'none';
+    imageClear.style.display = 'none';
+    imageSizeError.style.display = 'none';
+    imageLabelText.textContent = '＋ Add image (optional)';
+  });
+
+  const MAX_WORDS = 2000;
+
+  function countWords(str){
+    const trimmed = str.trim();
+    if(!trimmed) return 0;
+    return trimmed.split(/\s+/).length;
+  }
+
+  messageInput.addEventListener('input', () => {
+    const count = countWords(messageInput.value);
+    const left = MAX_WORDS - count;
+    charCount.textContent = (left >= 0 ? left + ' words left' : (-left) + ' words over the limit');
+    charCount.style.color = left < 0 ? 'var(--rose)' : '';
+  });
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function timeAgo(ts){
+    const diff = Date.now() - ts;
+    const mins = Math.floor(diff/60000);
+    if(mins < 1) return 'just now';
+    if(mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins/60);
+    if(hrs < 24) return hrs + 'h ago';
+    const days = Math.floor(hrs/24);
+    return days + 'd ago';
+  }
+
+  let messages = [];
+  const likedLocally = new Set();
+
+  async function loadMessages(){
+    try{
+      const { data, error } = await supabaseClient
+        .from('messages')
+        .select('*')
+        .order('ts', { ascending: false });
+      if(error) throw error;
+      messages = data || [];
+    }catch(e){
+      console.error('Could not load messages', e);
+      messages = [];
+    }
+    renderWall();
+  }
+
+  async function insertMessage(msg){
+    const { error } = await supabaseClient.from('messages').insert([msg]);
+    if(error) throw error;
+  }
+
+  async function updateMessageLikes(id, likes){
+    const { error } = await supabaseClient.from('messages').update({ likes }).eq('id', id);
+    if(error) console.error('Could not update likes', error);
+  }
+
+  async function deleteMessage(id){
+    const { error } = await supabaseClient.from('messages').delete().eq('id', id);
+    if(error) console.error('Could not delete message', error);
+  }
+
+  function updateCountryFilterOptions(){
+    const countries = [...new Set(messages.map(m => (m.country||'').trim()).filter(Boolean))].sort();
+    const countryFilterWrap = document.getElementById('countryFilterWrap');
+    countryFilterWrap.style.display = countries.length ? 'flex' : 'none';
+    const current = countryFilter.value;
+    countryFilter.innerHTML = '<option value="">All countries</option>' +
+      countries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    if(countries.includes(current)) countryFilter.value = current;
+  }
+
+  function renderWall(){
+    wallGrid.innerHTML = '';
+    updateCountryFilterOptions();
+
+    const activeCountry = countryFilter.value;
+    const activeMember = memberFilter.value;
+    let filtered = messages;
+    if(activeCountry) filtered = filtered.filter(m => (m.country||'').trim() === activeCountry);
+    if(activeMember) filtered = filtered.filter(m => m.member === activeMember);
+
+    if(messages.length === 0){
+      wallGrid.innerHTML = '<div class="empty-state">No messages yet — be the first to leave one.</div>';
+      return;
+    }
+    if(filtered.length === 0){
+      wallGrid.innerHTML = '<div class="empty-state">No messages match those filters yet.</div>';
+      return;
+    }
+
+    const sorted = [...filtered].sort((a,b) => b.ts - a.ts);
+    sorted.forEach(msg => {
+      const card = document.createElement('div');
+      card.className = 'msg-card';
+      const tag = msg.member ? `For ${escapeHtml(msg.member)}` : 'For all of them';
+      const nameLine = escapeHtml(msg.name || 'Anonymous ARMY') +
+        (msg.country ? ' · ' + escapeHtml(msg.country) : '') +
+        ' · ' + timeAgo(msg.ts);
+      const imageHtml = msg.image ? `<img class="msg-image" src="${msg.image}" alt="Image shared by ${escapeHtml(msg.name || 'a fan')}">` : '';
+      const titleHtml = msg.title ? `<h3 class="msg-title">${escapeHtml(msg.title)}</h3>` : '';
+      card.innerHTML = `
+        <span class="msg-tag">${tag}</span>
+        ${imageHtml}
+        ${titleHtml}
+        <p class="msg-body">${escapeHtml(msg.text)}</p>
+        <div class="msg-foot">
+          <span class="msg-name">${nameLine}</span>
+          <button class="like-btn" data-id="${msg.id}" aria-label="Send love">
+            <svg viewBox="0 0 24 24" fill="${likedLocally.has(msg.id) ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6c-1.7-1.7-4.5-1.7-6.2 0L12 7.2 9.4 4.6c-1.7-1.7-4.5-1.7-6.2 0-1.7 1.7-1.7 4.5 0 6.2L12 19.4l8.8-8.6c1.7-1.7 1.7-4.5 0-6.2z"/></svg>
+            <span>${msg.likes || 0}</span>
+          </button>
+        </div>`;
+      wallGrid.appendChild(card);
+    });
+
+    wallGrid.querySelectorAll('.like-btn').forEach(btn => {
+      btn.addEventListener('click', () => handleLike(btn));
+    });
+  }
+
+  async function handleLike(btn){
+    const id = btn.getAttribute('data-id');
+    const msg = messages.find(m => m.id === id);
+    if(!msg) return;
+    if(likedLocally.has(id)){
+      msg.likes = Math.max(0, (msg.likes||0) - 1);
+      likedLocally.delete(id);
+      btn.classList.remove('liked');
+    } else {
+      msg.likes = (msg.likes||0) + 1;
+      likedLocally.add(id);
+      btn.classList.add('liked');
+    }
+    btn.querySelector('span:last-child').textContent = msg.likes;
+    btn.querySelector('svg').setAttribute('fill', likedLocally.has(id) ? 'currentColor' : 'none');
+    await updateMessageLikes(id, msg.likes);
+  }
+
+  const BANNED_TERMS = [
+    'nigger','nigga','faggot','fag','retard','retarded','tranny','chink','spic','kike','wetback',
+    'kill yourself','kys','go die','i hope you die',
+    'nazi','heil hitler','white power','sieg heil'
+  ];
+
+  function containsHatefulContent(str){
+    const lower = str.toLowerCase();
+    return BANNED_TERMS.some(term => {
+      if(term.includes(' ')) return lower.includes(term);
+      const re = new RegExp('\\b' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+      return re.test(lower);
+    });
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    moderationError.style.display = 'none';
+    const text = messageInput.value.trim();
+    const name = nameInput.value.trim();
+    const title = titleInput.value.trim();
+    if(!name){
+      nameInput.reportValidity();
+      return;
+    }
+    if(!countryInput.value){
+      countryInput.reportValidity();
+      return;
+    }
+    if(!memberSelect.value){
+      memberSelect.reportValidity();
+      return;
+    }
+    if(!title){
+      titleInput.reportValidity();
+      return;
+    }
+    if(!text){
+      messageInput.reportValidity();
+      return;
+    }
+    if(countWords(text) > MAX_WORDS){
+      moderationError.textContent = `Your message is over the ${MAX_WORDS}-word limit — please trim it down.`;
+      moderationError.style.display = 'block';
+      return;
+    }
+    if(containsHatefulContent(text) || containsHatefulContent(name) || containsHatefulContent(title)){
+      moderationError.textContent = "This message can't be posted — it contains hate speech or harassment, which isn't allowed on the wall. Ordinary swearing is fine, just rewrite the flagged part.";
+      moderationError.style.display = 'block';
+      return;
+    }
+    const newMsg = {
+      id: 'm' + Date.now() + Math.random().toString(36).slice(2,7),
+      name: name.slice(0,40),
+      title: title.slice(0,80),
+      country: countryInput.value,
+      member: memberSelect.value,
+      text: text,
+      image: pendingImage,
+      ts: Date.now(),
+      likes: 0
+    };
+    try{
+      await insertMessage(newMsg);
+    }catch(err){
+      console.error('Could not post message', err);
+      moderationError.textContent = "Something went wrong posting your message — please try again.";
+      moderationError.style.display = 'block';
+      return;
+    }
+    messages.unshift(newMsg);
+    renderWall();
+    form.reset();
+    charCount.textContent = MAX_WORDS + ' words left';
+    charCount.style.color = '';
+    pendingImage = null;
+    imagePreviewWrap.style.display = 'none';
+    imageClear.style.display = 'none';
+    imageLabelText.textContent = '＋ Add image (optional)';
+    messageInput.focus();
+  });
+
+  countryFilter.addEventListener('change', renderWall);
+  memberFilter.addEventListener('change', renderWall);
+
+  const ADMIN_PASSWORD = '0729';
+  const mainApp = document.getElementById('mainApp');
+  const adminPage = document.getElementById('adminPage');
+  const adminGate = document.getElementById('adminGate');
+  const adminContent = document.getElementById('adminContent');
+  const adminLoginForm = document.getElementById('adminLoginForm');
+  const adminPasswordInput = document.getElementById('adminPasswordInput');
+  const adminGateError = document.getElementById('adminGateError');
+  const adminBack = document.getElementById('adminBack');
+  const adminLinkHero = document.getElementById('adminLinkHero');
+  const adminLinkFooter = document.getElementById('adminLinkFooter');
+  const adminCount = document.getElementById('adminCount');
+  const adminList = document.getElementById('adminList');
+  let adminUnlocked = false;
+
+  function renderAdminList(){
+    adminCount.textContent = messages.length + (messages.length === 1 ? ' message' : ' messages') + ' on the wall';
+    if(messages.length === 0){
+      adminList.innerHTML = '<div class="admin-empty">Nothing posted yet.</div>';
+      return;
+    }
+    const sorted = [...messages].sort((a,b) => b.ts - a.ts);
+    adminList.innerHTML = '';
+    sorted.forEach(msg => {
+      const row = document.createElement('div');
+      row.className = 'admin-row';
+      const meta = escapeHtml(msg.name || 'Anonymous ARMY') +
+        (msg.country ? ' · ' + escapeHtml(msg.country) : '') +
+        (msg.member ? ' · for ' + escapeHtml(msg.member) : '') +
+        ' · ' + timeAgo(msg.ts);
+      const thumb = msg.image ? `<img class="admin-thumb" src="${msg.image}" alt="">` : '';
+      const titlePrefix = msg.title ? `<strong>${escapeHtml(msg.title)}:</strong> ` : '';
+      row.innerHTML = `
+        <div class="admin-row-main">
+          ${thumb}
+          <div>
+            <div class="admin-row-text">${titlePrefix}${escapeHtml(msg.text)}</div>
+            <div class="admin-row-meta">${meta}</div>
+          </div>
+        </div>
+        <button class="admin-delete" data-id="${msg.id}">Delete</button>`;
+      adminList.appendChild(row);
+    });
+    adminList.querySelectorAll('.admin-delete').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        await deleteMessage(id);
+        messages = messages.filter(m => m.id !== id);
+        renderAdminList();
+        renderWall();
+      });
+    });
+  }
+
+  function showAdminPage(){
+    mainApp.style.display = 'none';
+    adminPage.style.display = 'block';
+    document.querySelector('.made-by-btn').style.display = 'none';
+    window.scrollTo(0,0);
+    if(adminUnlocked){
+      adminGate.style.display = 'none';
+      adminContent.style.display = 'block';
+      renderAdminList();
+    } else {
+      adminGate.style.display = 'block';
+      adminContent.style.display = 'none';
+      adminGateError.style.display = 'none';
+      adminPasswordInput.value = '';
+      setTimeout(() => adminPasswordInput.focus(), 0);
+    }
+  }
+
+  function showMainApp(){
+    adminPage.style.display = 'none';
+    mainApp.style.display = 'block';
+    document.querySelector('.made-by-btn').style.display = 'flex';
+    window.scrollTo(0,0);
+  }
+
+  adminLoginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if(adminPasswordInput.value === ADMIN_PASSWORD){
+      adminUnlocked = true;
+      adminGate.style.display = 'none';
+      adminContent.style.display = 'block';
+      renderAdminList();
+    } else {
+      adminGateError.style.display = 'block';
+      adminPasswordInput.value = '';
+      adminPasswordInput.focus();
+    }
+  });
+
+  adminBack.addEventListener('click', () => { showMainApp(); });
+  adminLinkHero.addEventListener('click', () => { showAdminPage(); });
+  adminLinkFooter.addEventListener('click', () => { showAdminPage(); });
+
+  showMainApp();
+  loadMessages();
+})();
+</script>
+
+</body>
+</html>
